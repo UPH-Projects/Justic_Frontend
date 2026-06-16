@@ -466,4 +466,48 @@ export const api = {
     }
     return res.json();
   },
+
+  postBug: async (payload: { title: string; description: string; token: string; path: string; attachments?: any[] }): Promise<{ item: any }> => {
+    const res = await fetch('https://task.se7eninc.com/api/bugs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${payload.token}`
+      },
+      body: JSON.stringify({
+        title: payload.title,
+        description: payload.description,
+        source: {
+          panel: 'Justic Frontend',
+          path: payload.path
+        },
+        attachments: payload.attachments || []
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || err.error || `HTTP error! status: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  uploadFile: async (file: File, token: string): Promise<{ attachment: { fileName: string; url: string; mimeType: string; size: number } }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('https://task.se7eninc.com/api/messages/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || err.error || `Upload failed! status: ${res.status}`);
+    }
+    return res.json();
+  },
 };
