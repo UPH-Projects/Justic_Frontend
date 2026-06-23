@@ -71,10 +71,9 @@ export default function Header() {
       {/* Floating Sticky Bug Report Button on the Right Edge */}
       <button
         onClick={() => setIsBugModalOpen(true)}
-        className="fixed right-6 bottom-6 z-[90] flex items-center gap-2 py-3 px-4 rounded-full bg-[#0d0d11]/85 border border-white/10 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-400 shadow-2xl backdrop-blur-md transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,240,255,0.2)] hover:scale-105 cursor-pointer group"
+        className="fixed right-6 bottom-6 z-[90] flex items-center justify-center p-3 rounded-full bg-[#0d0d11]/85 border border-white/10 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-400 shadow-2xl backdrop-blur-md transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,240,255,0.2)] hover:scale-105 cursor-pointer group"
       >
-        <Bug className="w-4 h-4 flex-shrink-0 text-cyan-400 group-hover:rotate-12 transition-transform duration-300" />
-        <span className="text-[11px] font-bold uppercase tracking-wider font-sans">Report Bug</span>
+        <Bug className="w-5 h-5 flex-shrink-0 text-cyan-400 group-hover:rotate-12 transition-transform duration-300" />
       </button>
 
       <BugReportModal 
