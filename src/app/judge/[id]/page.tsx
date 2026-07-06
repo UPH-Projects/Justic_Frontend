@@ -7,7 +7,8 @@ import Link from 'next/link';
 import { api, JudgeProfile as IJudgeProfile, HistoricalBJIPoint, CategoryBreakdown } from '../../../lib/api';
 import BJIDeviationChart from '../../../components/BJIDeviationChart';
 
-export default function JudgePage({ params }: { params: { id: string } }) {
+export default function JudgePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params);
   const [judge, setJudge] = useState<IJudgeProfile | null>(null);
   const [scores, setScores] = useState<{ historical_bji: HistoricalBJIPoint[]; case_distribution: CategoryBreakdown[] } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,8 +18,8 @@ export default function JudgePage({ params }: { params: { id: string } }) {
     let cancelled = false;
     (async () => {
       try {
-        const judgeData = await api.getJudge(params.id);
-        const scoreData = await api.getJudgeScores(params.id);
+        const judgeData = await api.getJudge(id);
+        const scoreData = await api.getJudgeScores(id);
         if (!cancelled) {
           setJudge(judgeData);
           setScores(scoreData);
@@ -30,14 +31,14 @@ export default function JudgePage({ params }: { params: { id: string } }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [params.id]);
+  }, [id]);
 
   const handleRecalculate = async () => {
     setRecalculating(true);
     try {
-      await api.recalculateJudge(params.id);
-      const judgeData = await api.getJudge(params.id);
-      const scoreData = await api.getJudgeScores(params.id);
+      await api.recalculateJudge(id);
+      const judgeData = await api.getJudge(id);
+      const scoreData = await api.getJudgeScores(id);
       setJudge(judgeData);
       setScores(scoreData);
     } catch (err) {

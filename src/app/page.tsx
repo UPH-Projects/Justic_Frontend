@@ -28,6 +28,12 @@ export default function Dashboard() {
   const [stateEntities, setStateEntities] = useState<SearchItem[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Filters State
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterLevel, setFilterLevel] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterYear, setFilterYear] = useState<number>(2024);
+
   useEffect(() => {
     if (!selectedState) return;
 
@@ -54,6 +60,45 @@ export default function Dashboard() {
       default: return null;
     }
   };
+
+  const getSourceLabel = (type: string) => {
+    switch (type) {
+      case 'judge': return 'PACER / RECAP';
+      case 'prosecutor': return 'County DA Reports';
+      case 'legislator': return 'Congress.gov API';
+      default: return 'Public Records';
+    }
+  };
+
+  // Client-side filtering logic
+  const filteredEntities = stateEntities.filter((item) => {
+    if (filterType !== 'all' && item.type !== filterType) {
+      return false;
+    }
+    if (filterLevel !== 'all') {
+      const isFederal = item.state === 'US';
+      if (filterLevel === 'federal' && !isFederal) return false;
+      if (filterLevel === 'state' && isFederal) return false;
+    }
+    if (filterCategory !== 'all') {
+      const id = item.id;
+      if (filterCategory === 'drugs') {
+        return ['cannon', 'gascon'].includes(id);
+      } else if (filterCategory === 'violent') {
+        return ['cannon', 'ito', 'bragg', 'gascon'].includes(id);
+      } else if (filterCategory === 'property') {
+        return ['evans'].includes(id);
+      } else if (filterCategory === 'white-collar') {
+        return ['cannon', 'bragg'].includes(id);
+      } else if (filterCategory === 'constitutional') {
+        return ['alito'].includes(id);
+      } else if (filterCategory === 'governance') {
+        return ['schumer', 'cruz'].includes(id);
+      }
+      return false;
+    }
+    return true;
+  });
 
   return (
     <motion.div 
@@ -111,10 +156,10 @@ export default function Dashboard() {
             transition={{ duration: 0.5, type: 'spring', bounce: 0.2 }}
             className="overflow-hidden origin-top"
           >
-            <div className="p-8 rounded-3xl glass-panel relative overflow-hidden">
+            <div className="p-8 rounded-3xl glass-panel relative overflow-hidden flex flex-col gap-6">
               <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
               
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/10 pb-6 mb-8 gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/10 pb-6 gap-4">
                 <div>
                   <h3 className="font-display font-extrabold text-2xl text-slate-100 flex items-center gap-3">
                     {selectedState === 'US' ? 'US Federal Court Directory' : `${selectedState} State Directory`}
@@ -125,21 +170,109 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setSelectedState(null)}
+                  onClick={() => {
+                    setSelectedState(null);
+                    // Reset filters
+                    setFilterType('all');
+                    setFilterLevel('all');
+                    setFilterCategory('all');
+                    setFilterYear(2024);
+                  }}
                   className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 font-bold uppercase tracking-widest transition-all"
                 >
                   Close Directory
                 </button>
               </div>
 
+              {/* Filters & Time Slider Control Panel */}
+              <div className="p-5 rounded-2xl bg-black/40 border border-white/5 backdrop-blur-md grid grid-cols-1 lg:grid-cols-4 gap-6 items-center">
+                {/* Year Range Slider */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Timeline Range</label>
+                    <span className="text-xs font-mono font-bold text-cyan-400">{filterYear} Score Index</span>
+                  </div>
+                  <div className="px-2">
+                    <input
+                      type="range"
+                      min={2021}
+                      max={2024}
+                      step={1}
+                      value={filterYear}
+                      onChange={(e) => setFilterYear(parseInt(e.target.value))}
+                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 focus:outline-none"
+                    />
+                    <div className="flex justify-between text-[9px] text-slate-600 font-mono mt-1 px-0.5">
+                      <span>2021</span>
+                      <span>2022</span>
+                      <span>2023</span>
+                      <span>2024</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Entity Class Selector */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Entity Class</label>
+                  <div className="grid grid-cols-4 gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+                    {['all', 'judge', 'prosecutor', 'legislator'].map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setFilterType(t)}
+                        className={`py-1.5 px-2 rounded-lg text-[10px] uppercase font-bold tracking-wider transition ${
+                          filterType === t 
+                            ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Jurisdiction Level Selector */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Jurisdiction Level</label>
+                  <select
+                    value={filterLevel}
+                    onChange={(e) => setFilterLevel(e.target.value)}
+                    className="bg-black/40 text-slate-300 text-xs py-2 px-3 rounded-xl border border-white/10 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="all">All Jurisdictions</option>
+                    <option value="federal">Federal Level</option>
+                    <option value="state">State Level</option>
+                  </select>
+                </div>
+
+                {/* Topic / Case Category Selector */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Indexed Case Topic</label>
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="bg-black/40 text-slate-300 text-xs py-2 px-3 rounded-xl border border-white/10 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="all">All Indexed Topics</option>
+                    <option value="drugs">Drug Offenses</option>
+                    <option value="violent">Violent Crimes / Homicide</option>
+                    <option value="property">Property / Theft / Damage</option>
+                    <option value="white-collar">Corporate / White Collar</option>
+                    <option value="constitutional">Constitutional Appeals</option>
+                    <option value="governance">Governance / Ethics Roll Calls</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Loader */}
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin" />
                   <p className="text-slate-400 font-mono text-xs uppercase tracking-widest">Querying Data Index...</p>
                 </div>
-              ) : stateEntities.length === 0 ? (
+              ) : filteredEntities.length === 0 ? (
                 <div className="text-center py-12 text-slate-500 font-sans text-sm">
-                  No records found in this jurisdiction.
+                  No records match the active search filter parameters in this jurisdiction.
                 </div>
               ) : (
                 <motion.div 
@@ -150,46 +283,69 @@ export default function Dashboard() {
                   }}
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
                 >
-                  {stateEntities.map((item) => (
-                    <motion.div key={item.id} variants={itemVariants}>
-                      <Link
-                        href={`/${item.type}/${item.id}`}
-                        className="group flex flex-col p-5 rounded-2xl glass-card relative overflow-hidden"
-                      >
-                        <div className="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full pointer-events-none group-hover:from-cyan-500/10 transition-colors" />
-                        
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="p-3 rounded-xl bg-white/5 border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
-                            {getIcon(item.type)}
+                  {filteredEntities.map((item) => {
+                    const yearlyScore = api.getHistoricalScore(item.id, item.type, filterYear);
+                    const finalScore = yearlyScore !== 0 ? yearlyScore : item.current_score;
+
+                    return (
+                      <motion.div key={item.id} variants={itemVariants}>
+                        <Link
+                          href={`/${item.type}/${item.id}`}
+                          className="group flex flex-col p-5 rounded-2xl glass-card relative overflow-hidden"
+                        >
+                          <div className="absolute right-0 top-0 w-24 h-24 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full pointer-events-none group-hover:from-cyan-500/10 transition-colors" />
+                          
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="p-3 rounded-xl bg-white/5 border border-white/10 shadow-inner group-hover:scale-110 transition-transform">
+                              {getIcon(item.type)}
+                            </div>
+                            <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-cyan-400 transition-colors" />
                           </div>
-                          <ArrowUpRight className="w-5 h-5 text-slate-600 group-hover:text-cyan-400 transition-colors" />
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-display font-bold text-lg text-slate-200 group-hover:text-white transition-colors">
-                            {item.display_name}
-                          </h4>
-                          <div className="flex items-center justify-between mt-3">
-                            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-                              {item.type}
-                            </span>
-                            <span className={`text-xs font-mono font-bold ${
-                              item.current_score > 0.5 ? 'text-red-400' : 
-                              item.current_score < -0.5 ? 'text-emerald-400' : 'text-slate-400'
-                            }`}>
-                              {item.current_score > 0 ? `+${item.current_score.toFixed(2)}` : item.current_score.toFixed(2)}
-                            </span>
+                          
+                          <div>
+                            <h4 className="font-display font-bold text-lg text-slate-200 group-hover:text-white transition-colors">
+                              {item.display_name}
+                            </h4>
+                            
+                            <div className="flex items-center justify-between mt-3">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-mono font-bold">
+                                {item.type}
+                              </span>
+                              <span className={`text-xs font-mono font-bold ${
+                                finalScore > 0.5 ? 'text-red-400' : 
+                                finalScore < -0.5 ? 'text-emerald-400' : 'text-slate-400'
+                              }`}>
+                                {finalScore > 0 ? `+${finalScore.toFixed(2)}` : finalScore.toFixed(2)}
+                              </span>
+                            </div>
+
+                            {/* Source and Data Traceability tag */}
+                            <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[9px] text-slate-600 font-mono">
+                              <span>Source: {getSourceLabel(item.type)}</span>
+                              <span>Traceable Log</span>
+                            </div>
                           </div>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  ))}
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
                 </motion.div>
               )}
+
+              {/* Global Legal Compliance Banner */}
+              <div className="mt-8 pt-6 border-t border-white/10 text-center max-w-4xl mx-auto space-y-2">
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  <strong>Legal Notice & Disclosure:</strong> Benchmark Justice™ scoring metrics represent statistically normalized deviation index scores (z-scores) computed strictly from public database records. Standard scores denote distance from localized peer medians. Scoring datasets contain absolutely zero subjective editor labeling, ideological scoring, or character evaluation.
+                </p>
+                <p className="text-[9px] text-slate-600 font-mono uppercase tracking-wider">
+                  Indexed from Public Source Feeds: PACER/RECAP Archive &bull; Federal/State DOC Dockets &bull; Congress.gov API
+                </p>
+              </div>
             </div>
           </motion.section>
         )}
       </AnimatePresence>
+
 
       {/* 4. Bento Box Network & Index Metrics */}
       <motion.section variants={itemVariants} className="bento-grid">

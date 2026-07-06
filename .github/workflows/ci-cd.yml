@@ -1,0 +1,39 @@
+name: Benchmark Justice CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code Repository
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js Environment
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+        cache: 'npm'
+
+    - name: Install Project Dependencies
+      run: npm ci
+
+    - name: Run ESLint Linter
+      run: npm run lint --if-present
+
+    - name: Verify TypeScript Typecheck
+      run: npx tsc --noEmit
+
+    - name: Next.js Production Compilation Build
+      run: npm run build
+      env:
+        NEXT_TELEMETRY_DISABLED: 1
+        COURTLISTENER_API_KEY: ${{ secrets.COURTLISTENER_API_KEY }}
+
+    - name: Docker Build Test
+      run: docker build -t benchmark-justice-frontend:latest .

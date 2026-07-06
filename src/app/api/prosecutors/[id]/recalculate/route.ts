@@ -1,0 +1,25 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const BACKEND_BASE = process.env.BACKEND_API_URL || 'http://localhost:8000/api';
+
+export async function POST(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+    const response = await fetch(`${BACKEND_BASE}/prosecutors/${id}/recalculate`, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return NextResponse.json({ error: err.error || `Recalculation failed` }, { status: response.status });
+    }
+    return NextResponse.json(await response.json());
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Backend unavailable' }, { status: 503 });
+  }
+}

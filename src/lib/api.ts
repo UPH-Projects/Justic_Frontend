@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';
 
 export interface SearchItem {
   id: string;
@@ -67,6 +67,43 @@ export interface LegislatorProfile {
   biography: string | null;
   avatar_url: string | null;
 }
+
+export interface HistoricalPDIPoint {
+  year: number;
+  average_pdi: number;
+}
+
+export interface OutcomeDistribution {
+  outcome: string;
+  count: number;
+  rate: number;
+}
+
+export interface ProsecutorScoresResponse {
+  historical_pdi: HistoricalPDIPoint[];
+  outcomes: OutcomeDistribution[];
+}
+
+export interface HistoricalLIIPoint {
+  year: number;
+  average_lii: number;
+}
+
+export interface VoteRecord {
+  bill_id: string;
+  title: string;
+  category: string;
+  legislator_vote: 'yea' | 'nay' | 'abstain';
+  party_alignment_rate: number;
+  district_alignment_rate: number;
+  passed: boolean;
+}
+
+export interface LegislatorScoresResponse {
+  historical_lii: HistoricalLIIPoint[];
+  votes: VoteRecord[];
+}
+
 
 export interface CourtListenerResult {
   absolute_url: string;
@@ -281,6 +318,72 @@ const MOCK_LEGISLATORS: Record<string, LegislatorProfile> = {
   }
 };
 
+const MOCK_PROSECUTOR_SCORES: Record<string, ProsecutorScoresResponse> = {
+  bragg: {
+    historical_pdi: [
+      { year: 2021, average_pdi: 0.70 },
+      { year: 2022, average_pdi: 0.75 },
+      { year: 2023, average_pdi: 0.80 },
+      { year: 2024, average_pdi: 0.85 }
+    ],
+    outcomes: [
+      { outcome: 'Conviction', count: 65, rate: 0.43 },
+      { outcome: 'Pleaded Guilty', count: 52, rate: 0.35 },
+      { outcome: 'Reduced Charge', count: 23, rate: 0.15 },
+      { outcome: 'Dismissed', count: 10, rate: 0.07 }
+    ]
+  },
+  gascon: {
+    historical_pdi: [
+      { year: 2021, average_pdi: -0.90 },
+      { year: 2022, average_pdi: -1.00 },
+      { year: 2023, average_pdi: -1.05 },
+      { year: 2024, average_pdi: -1.10 }
+    ],
+    outcomes: [
+      { outcome: 'Conviction', count: 70, rate: 0.35 },
+      { outcome: 'Pleaded Guilty', count: 50, rate: 0.25 },
+      { outcome: 'Reduced Charge', count: 56, rate: 0.28 },
+      { outcome: 'Dismissed', count: 24, rate: 0.12 }
+    ]
+  }
+};
+
+const MOCK_LEGISLATOR_SCORES: Record<string, LegislatorScoresResponse> = {
+  schumer: {
+    historical_lii: [
+      { year: 2021, average_lii: 1.1 },
+      { year: 2022, average_lii: 1.2 },
+      { year: 2023, average_lii: 1.3 },
+      { year: 2024, average_lii: 1.4 }
+    ],
+    votes: [
+      { bill_id: 'S. 110', title: 'Infrastructure Act', category: 'Economy', legislator_vote: 'yea', party_alignment_rate: 0.96, district_alignment_rate: 0.88, passed: true },
+      { bill_id: 'S. 242', title: 'Salary Adjustment', category: 'Labor', legislator_vote: 'yea', party_alignment_rate: 0.92, district_alignment_rate: 0.85, passed: true },
+      { bill_id: 'S. 450', title: 'Ethics Reform', category: 'Governance', legislator_vote: 'yea', party_alignment_rate: 0.95, district_alignment_rate: 0.87, passed: false },
+      { bill_id: 'S. 512', title: 'Clean Energy Bill', category: 'Environment', legislator_vote: 'yea', party_alignment_rate: 0.98, district_alignment_rate: 0.91, passed: true },
+      { bill_id: 'S. 604', title: 'Tax Fairness Act', category: 'Finance', legislator_vote: 'yea', party_alignment_rate: 0.94, district_alignment_rate: 0.86, passed: false },
+      { bill_id: 'S. 711', title: 'Healthcare Access', category: 'Health', legislator_vote: 'yea', party_alignment_rate: 0.97, district_alignment_rate: 0.89, passed: true }
+    ]
+  },
+  cruz: {
+    historical_lii: [
+      { year: 2021, average_lii: -1.5 },
+      { year: 2022, average_lii: -1.6 },
+      { year: 2023, average_lii: -1.7 },
+      { year: 2024, average_lii: -1.8 }
+    ],
+    votes: [
+      { bill_id: 'S. 110', title: 'Infrastructure Act', category: 'Economy', legislator_vote: 'nay', party_alignment_rate: 0.94, district_alignment_rate: 0.90, passed: true },
+      { bill_id: 'S. 242', title: 'Salary Adjustment', category: 'Labor', legislator_vote: 'yea', party_alignment_rate: 0.89, district_alignment_rate: 0.92, passed: true },
+      { bill_id: 'S. 450', title: 'Ethics Reform', category: 'Governance', legislator_vote: 'nay', party_alignment_rate: 0.93, district_alignment_rate: 0.91, passed: false },
+      { bill_id: 'S. 512', title: 'Clean Energy Bill', category: 'Environment', legislator_vote: 'nay', party_alignment_rate: 0.97, district_alignment_rate: 0.94, passed: true },
+      { bill_id: 'S. 604', title: 'Tax Fairness Act', category: 'Finance', legislator_vote: 'nay', party_alignment_rate: 0.95, district_alignment_rate: 0.92, passed: false },
+      { bill_id: 'S. 711', title: 'Healthcare Access', category: 'Health', legislator_vote: 'nay', party_alignment_rate: 0.96, district_alignment_rate: 0.93, passed: true }
+    ]
+  }
+};
+
 const defaultJudge = (id: string): JudgeProfile => ({
   id,
   first_name: id.charAt(0).toUpperCase() + id.slice(1),
@@ -320,6 +423,19 @@ const defaultProsecutor = (id: string): ProsecutorProfile => ({
   avatar_url: null
 });
 
+const defaultProsecutorScores = (): ProsecutorScoresResponse => ({
+  historical_pdi: [
+    { year: 2022, average_pdi: 0.0 },
+    { year: 2023, average_pdi: 0.0 },
+    { year: 2024, average_pdi: 0.0 }
+  ],
+  outcomes: [
+    { outcome: 'Conviction', count: 10, rate: 0.50 },
+    { outcome: 'Dismissed', count: 5, rate: 0.25 },
+    { outcome: 'Reduced Charge', count: 5, rate: 0.25 }
+  ]
+});
+
 const defaultLegislator = (id: string): LegislatorProfile => ({
   id,
   first_name: id.charAt(0).toUpperCase() + id.slice(1),
@@ -335,6 +451,18 @@ const defaultLegislator = (id: string): LegislatorProfile => ({
   biography: 'Legislative roll call tracking and consensus metrics record sheet.',
   avatar_url: null
 });
+
+const defaultLegislatorScores = (): LegislatorScoresResponse => ({
+  historical_lii: [
+    { year: 2022, average_lii: 0.0 },
+    { year: 2023, average_lii: 0.0 },
+    { year: 2024, average_lii: 0.0 }
+  ],
+  votes: [
+    { bill_id: 'H.R. 1', title: 'Default Session Bill', category: 'General', legislator_vote: 'abstain', party_alignment_rate: 0.50, district_alignment_rate: 0.50, passed: true }
+  ]
+});
+
 
 // -----------------------------------------------------------------------------
 // CORE FETCH & API WRAPPERS
@@ -423,6 +551,15 @@ export const api = {
     }
   },
 
+  getProsecutorScores: async (id: string): Promise<ProsecutorScoresResponse> => {
+    try {
+      return await apiFetch<ProsecutorScoresResponse>(`/prosecutors/${id}/scores`);
+    } catch (err) {
+      console.warn(`[API Fallback - Prosecutor Scores ${id}]:`, err);
+      return MOCK_PROSECUTOR_SCORES[id] || defaultProsecutorScores();
+    }
+  },
+
   recalculateProsecutor: async (id: string): Promise<{ status: string; calculated_score: number }> => {
     try {
       return await apiFetch<{ status: string; calculated_score: number }>(`/prosecutors/${id}/recalculate`, { method: 'POST' });
@@ -441,6 +578,16 @@ export const api = {
       return MOCK_LEGISLATORS[id] || defaultLegislator(id);
     }
   },
+
+  getLegislatorScores: async (id: string): Promise<LegislatorScoresResponse> => {
+    try {
+      return await apiFetch<LegislatorScoresResponse>(`/legislators/${id}/scores`);
+    } catch (err) {
+      console.warn(`[API Fallback - Legislator Scores ${id}]:`, err);
+      return MOCK_LEGISLATOR_SCORES[id] || defaultLegislatorScores();
+    }
+  },
+
 
   recalculateLegislator: async (id: string): Promise<{ status: string; calculated_score: number }> => {
     try {
@@ -510,4 +657,22 @@ export const api = {
     }
     return res.json();
   },
+
+  getHistoricalScore: (id: string, type: 'judge' | 'prosecutor' | 'legislator', year: number): number => {
+    if (type === 'judge') {
+      const scores = MOCK_JUDGE_SCORES[id];
+      const pt = scores?.historical_bji.find(p => p.year === year);
+      if (pt) return pt.average_bji;
+    } else if (type === 'prosecutor') {
+      const scores = MOCK_PROSECUTOR_SCORES[id];
+      const pt = scores?.historical_pdi.find(p => p.year === year);
+      if (pt) return pt.average_pdi;
+    } else if (type === 'legislator') {
+      const scores = MOCK_LEGISLATOR_SCORES[id];
+      const pt = scores?.historical_lii.find(p => p.year === year);
+      if (pt) return pt.average_lii;
+    }
+    return 0.0;
+  },
 };
+

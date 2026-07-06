@@ -1,0 +1,421 @@
+openapi: 3.0.3
+info:
+  title: Benchmark Justice™ REST API
+  description: Public law analytics platform REST API specification for judges (BJI), prosecutors (PDI), and legislators (LII).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api
+    description: Local development backend server
+  - url: /api
+    description: Frontend relative API proxy
+paths:
+  /search:
+    get:
+      summary: Search indexed legal and political entities
+      description: Returns a list of judges, prosecutors, and legislators matching query criteria.
+      parameters:
+        - name: q
+          in: query
+          description: Search text query matching entity names or IDs
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Filter by entity type
+          required: false
+          schema:
+            type: string
+            enum: [judge, prosecutor, legislator]
+        - name: state
+          in: query
+          description: Filter by US state code (e.g., NY, CA, TX) or 'US' for federal
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchItem'
+        '503':
+          description: Backend service unavailable
+
+  /judges/{id}:
+    get:
+      summary: Retrieve a judge's profile
+      parameters:
+        - name: id
+          in: path
+          description: Unique string ID of the judge
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Judge profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JudgeProfile'
+        '404':
+          description: Judge not found
+
+  /judges/{id}/scores:
+    get:
+      summary: Retrieve BJI historical scoring trends and crime category sentencing deviations
+      parameters:
+        - name: id
+          in: path
+          description: Unique string ID of the judge
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scoring metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JudgeScoresResponse'
+
+  /judges/{id}/recalculate:
+    post:
+      summary: Trigger BJI score recalculation job
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Unique string ID of the judge
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  calculated_score:
+                    type: number
+                    format: float
+                    example: 1.50
+
+  /prosecutors/{id}:
+    get:
+      summary: Retrieve a prosecutor's profile
+      parameters:
+        - name: id
+          in: path
+          description: Unique string ID of the prosecutor
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Prosecutor profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProsecutorProfile'
+
+  /prosecutors/{id}/scores:
+    get:
+      summary: Retrieve PDI historical trend and case outcome distributions
+      parameters:
+        - name: id
+          in: path
+          description: Unique string ID of the prosecutor
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Metrics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProsecutorScoresResponse'
+
+  /prosecutors/{id}/recalculate:
+    post:
+      summary: Trigger PDI recalculation job
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: Unique string ID of the prosecutor
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job triggered successfully
+
+  /legislators/{id}:
+    get:
+      summary: Retrieve a legislator's profile
+      parameters:
+        - name: id
+          in: path
+          description: Unique string ID of the legislator
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Legislator profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegislatorProfile'
+
+  /legislators/{id}/scores:
+    get:
+      summary: Retrieve LII historical trend and roll-call voting record
+      parameters:
+        - name: id
+          in: path
+          description: Unique string ID of the legislator
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Metrics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegislatorScoresResponse'
+
+  /legislators/{id}/recalculate:
+    post:
+      summary: Trigger LII recalculation job
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Recalculation complete
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SearchItem:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [judge, prosecutor, legislator]
+        display_name:
+          type: string
+        state:
+          type: string
+        current_score:
+          type: number
+          format: float
+
+    JudgeProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        middle_name:
+          type: string
+          nullable: true
+        jurisdiction:
+          type: string
+        current_bji:
+          type: number
+          format: float
+        confidence_weight:
+          type: number
+          format: float
+        sample_size:
+          type: integer
+        party_affiliation:
+          type: string
+          nullable: true
+        biography:
+          type: string
+          nullable: true
+
+    JudgeScoresResponse:
+      type: object
+      properties:
+        historical_bji:
+          type: array
+          items:
+            type: object
+            properties:
+              year:
+                type: integer
+              average_bji:
+                type: number
+                format: float
+        case_distribution:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
+              deviation:
+                type: number
+                format: float
+
+    ProsecutorProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        office_name:
+          type: string
+        pdi_aggressiveness:
+          type: number
+          format: float
+        charge_reduction_rate:
+          type: number
+          format: float
+        conviction_rate:
+          type: number
+          format: float
+        dismissal_rate:
+          type: number
+          format: float
+        confidence_weight:
+          type: number
+          format: float
+        sample_size:
+          type: integer
+
+    ProsecutorScoresResponse:
+      type: object
+      properties:
+        historical_pdi:
+          type: array
+          items:
+            type: object
+            properties:
+              year:
+                type: integer
+              average_pdi:
+                type: number
+                format: float
+        outcomes:
+          type: array
+          items:
+            type: object
+            properties:
+              outcome:
+                type: string
+              count:
+                type: integer
+              rate:
+                type: number
+                format: float
+
+    LegislatorProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        party:
+          type: string
+        chamber:
+          type: string
+        district:
+          type: string
+          nullable: true
+        legislative_influence_index:
+          type: number
+          format: float
+        participation_rate:
+          type: number
+          format: float
+        district_alignment:
+          type: number
+          format: float
+        confidence_weight:
+          type: number
+          format: float
+        sample_size:
+          type: integer
+        biography:
+          type: string
+          nullable: true
+
+    LegislatorScoresResponse:
+      type: object
+      properties:
+        historical_lii:
+          type: array
+          items:
+            type: object
+            properties:
+              year:
+                type: integer
+              average_lii:
+                type: number
+                format: float
+        votes:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoteRecord'
+
+    VoteRecord:
+      type: object
+      properties:
+        bill_id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        legislator_vote:
+          type: string
+          enum: [yea, nay, abstain]
+        party_alignment_rate:
+          type: number
+          format: float
+        district_alignment_rate:
+          type: number
+          format: float
+        passed:
+          type: boolean
