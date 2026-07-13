@@ -143,7 +143,7 @@ export default function Dashboard() {
 
       {/* 2. Interactive Map Section */}
       <motion.section variants={itemVariants}>
-        <StateMap onSelectState={setSelectedState} />
+        <StateMap selectedState={selectedState} onSelectState={setSelectedState} />
       </motion.section>
 
       {/* 3. State Directory Expansion Panel */}

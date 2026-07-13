@@ -39,6 +39,25 @@ services:
     volumes:
       - es_data:/usr/share/elasticsearch/data
 
+  # Backend REST API Service
+  backend:
+    build:
+      context: ../Justic_Backend
+      dockerfile: Dockerfile
+    container_name: benchmark-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - DATABASE_URL=postgresql://justice_admin:superSecurePassword123@db:5432/benchmark_justice
+      - REDIS_URL=redis://redis:6379
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - db
+      - redis
+      - elasticsearch
+
   # Frontend Application Layer
   app:
     build:
@@ -53,11 +72,12 @@ services:
       - DATABASE_URL=postgresql://justice_admin:superSecurePassword123@db:5432/benchmark_justice
       - REDIS_URL=redis://redis:6379
       - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - BACKEND_API_URL=http://localhost:8000/api
+      - BACKEND_API_URL=http://backend:8000/api
     depends_on:
       - db
       - redis
       - elasticsearch
+      - backend
 
 volumes:
   postgres_data:

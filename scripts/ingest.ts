@@ -1,4 +1,3 @@
-import { datetime } from 'next/dist/compiled/@edge-runtime/primitives';
 
 interface RawDocument {
   id: string;
