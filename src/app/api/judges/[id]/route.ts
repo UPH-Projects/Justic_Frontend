@@ -1,31 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MOCK_JUDGES, defaultJudge } from '../../../../lib/mockDatabase';
-
-const BACKEND_BASE = process.env.BACKEND_API_URL || 'http://127.0.0.1:8000/api';
+import { getLiveJudge } from '../../../../lib/liveCollector';
 
 /**
  * GET /api/judges/[id]
- * Returns a specific judge's profile from backend. Falls back to mock data if backend down.
+ * Returns a specific judge's profile by calling getLiveJudge directly.
+ * Falls back to mock data if not found.
  */
 export async function GET(
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
   try {
-    const response = await fetch(`${BACKEND_BASE}/judges/${id}`, {
-      headers: { 'Accept': 'application/json' }, 
-      cache: 'no-store',
-      signal: AbortSignal.timeout(3000),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const liveJudge = await getLiveJudge(id);
+    if (liveJudge) {
+      return NextResponse.json(liveJudge);
     }
-
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error: unknown) {
-    console.warn(`[Judges API Proxy]: Backend unavailable, serving judge ${id} from Mock Database`);
+    throw new Error('Judge not found in live registry');
+  } catch (error: any) {
+    console.warn(`[Judges API] Live fetch failed for ${id}, error: ${error.message}, serving fallback`);
     const judge = MOCK_JUDGES[id] || defaultJudge(id);
     return NextResponse.json(judge);
   }
