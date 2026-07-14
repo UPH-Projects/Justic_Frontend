@@ -31,8 +31,8 @@ export default function DocsPage() {
   return (
     <div className="flex flex-col lg:flex-row gap-8 py-4 min-h-[calc(100vh-120px)] relative">
       {/* Sidebar Navigation */}
-      <aside className="w-full lg:w-72 flex-shrink-0">
-        <div className="sticky top-28 p-5 rounded-2xl glass-panel flex flex-col gap-2">
+      <aside className="w-full lg:w-72 flex-shrink-0 lg:sticky lg:top-28 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto pr-1">
+        <div className="p-5 rounded-2xl glass-panel flex flex-col gap-2">
           <div className="px-3 py-1.5 text-[10px] text-slate-500 uppercase tracking-widest font-mono font-bold">Documentation Menu</div>
           {DOC_SECTIONS.map((sec) => {
             const Icon = sec.icon;

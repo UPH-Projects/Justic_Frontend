@@ -318,18 +318,23 @@ export default function Dashboard() {
                 {/* Entity Class Selector */}
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Entity Class</label>
-                  <div className="grid grid-cols-4 gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
-                    {['all', 'judge', 'prosecutor', 'legislator'].map((t) => (
+                  <div className="grid grid-cols-4 gap-0.5 bg-white/5 p-1 rounded-xl border border-white/5">
+                    {[
+                      { id: 'all', label: 'ALL' },
+                      { id: 'judge', label: 'JUDGE' },
+                      { id: 'prosecutor', label: 'PROS' },
+                      { id: 'legislator', label: 'LEGIS' }
+                    ].map((t) => (
                       <button
-                        key={t}
-                        onClick={() => setFilterType(t)}
-                        className={`py-1.5 px-1 rounded-lg text-[10px] uppercase font-bold tracking-wider transition ${
-                          filterType === t 
+                        key={t.id}
+                        onClick={() => setFilterType(t.id)}
+                        className={`py-1.5 px-0.5 rounded-lg text-[9px] font-bold tracking-tight transition text-center ${
+                          filterType === t.id 
                             ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
                             : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
-                        {t}
+                        {t.label}
                       </button>
                     ))}
                   </div>

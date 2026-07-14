@@ -226,7 +226,7 @@ export default function CourtListenerSearch() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Column: Filter Controls */}
-        <motion.div variants={itemVariants} className="lg:col-span-3 flex flex-col gap-6">
+        <motion.div variants={itemVariants} className="lg:col-span-3 lg:sticky lg:top-28 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto pr-1 flex flex-col gap-6">
           <div className="p-6 rounded-3xl glass-panel flex flex-col gap-6">
             <div>
               <h3 className="font-display font-bold text-slate-200 text-lg mb-1">Filters</h3>
