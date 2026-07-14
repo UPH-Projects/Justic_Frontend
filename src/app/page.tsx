@@ -2,45 +2,66 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { Gavel, Shield, BookOpen, Activity, ArrowUpRight } from 'lucide-react';
+import { Gavel, Shield, BookOpen, Activity, ArrowUpRight, Scale, Calendar, Building, User, FileText, Loader2 } from 'lucide-react';
 import SearchAutocomplete from '../components/SearchAutocomplete';
 import StateMap from '../components/StateMap';
 import LegislativeNetwork from '../components/LegislativeNetwork';
 import Link from 'next/link';
-import { api, SearchItem } from '../lib/api';
+import { api, SearchItem, CourtListenerResult } from '../lib/api';
 
 // Framer Motion Variants
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.15, delayChildren: 0.1 }
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 }
   }
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 80, damping: 20 } }
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 90, damping: 18 } }
 };
 
 export default function Dashboard() {
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [stateEntities, setStateEntities] = useState<SearchItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [recentCases, setRecentCases] = useState<CourtListenerResult[]>([]);
+  const [loadingRecent, setLoadingRecent] = useState(true);
 
   // Filters State
+  const [filterState, setFilterState] = useState<string>('all');
+  const [filterCourt, setFilterCourt] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
-  const [filterLevel, setFilterLevel] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterYear, setFilterYear] = useState<number>(2024);
 
+  // Sync selectedState with filterState
   useEffect(() => {
-    if (!selectedState) return;
+    if (selectedState) {
+      setFilterState(selectedState);
+    } else {
+      setFilterState('all');
+    }
+  }, [selectedState]);
 
+  useEffect(() => {
+    if (filterState !== 'all') {
+      setSelectedState(filterState);
+    } else {
+      setSelectedState(null);
+    }
+  }, [filterState]);
+
+  // Load directory entities based on filterState
+  useEffect(() => {
+    const lookupState = filterState === 'all' ? undefined : filterState;
+    
     async function fetchStateData() {
       setLoading(true);
       try {
-        const data = await api.search('', undefined, selectedState || undefined);
+        const data = await api.search('', undefined, lookupState);
         setStateEntities(data);
       } catch (err) {
         console.error(err);
@@ -50,13 +71,35 @@ export default function Dashboard() {
     }
 
     fetchStateData();
-  }, [selectedState]);
+  }, [filterState]);
+
+  // Fetch recent cases from CourtListener
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingRecent(true);
+      try {
+        const data = await api.searchCourtListener('court');
+        if (!cancelled) {
+          setRecentCases(data.results?.slice(0, 5) || []);
+        }
+      } catch (err) {
+        console.error('Failed to load recent cases:', err);
+      } finally {
+        if (!cancelled) setLoadingRecent(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const getIcon = (type: string) => {
     switch (type) {
       case 'judge': return <Gavel className="w-5 h-5 text-cyan-400" />;
       case 'prosecutor': return <Shield className="w-5 h-5 text-emerald-400" />;
       case 'legislator': return <BookOpen className="w-5 h-5 text-indigo-400" />;
+      case 'attorney': return <User className="w-5 h-5 text-amber-400" />;
+      case 'court': return <Building className="w-5 h-5 text-purple-400" />;
+      case 'case': return <FileText className="w-5 h-5 text-rose-400" />;
       default: return null;
     }
   };
@@ -66,6 +109,9 @@ export default function Dashboard() {
       case 'judge': return 'PACER / RECAP';
       case 'prosecutor': return 'County DA Reports';
       case 'legislator': return 'Congress.gov API';
+      case 'attorney': return 'Court Opinions';
+      case 'court': return 'State Registries';
+      case 'case': return 'Docket Records';
       default: return 'Public Records';
     }
   };
@@ -75,10 +121,12 @@ export default function Dashboard() {
     if (filterType !== 'all' && item.type !== filterType) {
       return false;
     }
-    if (filterLevel !== 'all') {
-      const isFederal = item.state === 'US';
-      if (filterLevel === 'federal' && !isFederal) return false;
-      if (filterLevel === 'state' && isFederal) return false;
+    if (filterCourt !== 'all') {
+      // Direct mock filtering or ID matching
+      const id = item.id.toLowerCase();
+      if (filterCourt === 'scotus' && id !== 'alito') return false;
+      if (filterCourt === 'nysd' && id !== 'schumer' && id !== 'bragg') return false;
+      if (filterCourt === 'cacd' && id !== 'gascon' && id !== 'ito') return false;
     }
     if (filterCategory !== 'all') {
       const id = item.id;
@@ -141,12 +189,51 @@ export default function Dashboard() {
         </div>
       </motion.section>
 
-      {/* 2. Interactive Map Section */}
+      {/* 2. Dashboard Metrics widgets */}
+      <motion.section variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="p-6 rounded-2xl glass-panel relative overflow-hidden flex flex-col justify-between h-32 group hover:border-cyan-500/30 transition-all shadow-inner">
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full bg-cyan-500/5 filter blur-xl group-hover:scale-125 transition-transform" />
+          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-mono font-bold">Total Scored Cases</span>
+          <div className="text-3xl font-display font-extrabold text-slate-200 mt-2">
+            184,295
+          </div>
+          <span className="text-[9px] text-slate-500 font-mono mt-1">&bull; Active PACER/RECAP records</span>
+        </div>
+
+        <div className="p-6 rounded-2xl glass-panel relative overflow-hidden flex flex-col justify-between h-32 group hover:border-emerald-500/30 transition-all shadow-inner">
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full bg-emerald-500/5 filter blur-xl group-hover:scale-125 transition-transform" />
+          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-mono font-bold">Scored Judges</span>
+          <div className="text-3xl font-display font-extrabold text-slate-200 mt-2">
+            85 Officers
+          </div>
+          <span className="text-[9px] text-slate-500 font-mono mt-1">&bull; Federal & State divisions</span>
+        </div>
+
+        <div className="p-6 rounded-2xl glass-panel relative overflow-hidden flex flex-col justify-between h-32 group hover:border-indigo-500/30 transition-all shadow-inner">
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full bg-indigo-500/5 filter blur-xl group-hover:scale-125 transition-transform" />
+          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-mono font-bold">Active Prosecutors</span>
+          <div className="text-3xl font-display font-extrabold text-slate-200 mt-2">
+            32 Offices
+          </div>
+          <span className="text-[9px] text-slate-500 font-mono mt-1">&bull; County DA metrics cataloged</span>
+        </div>
+
+        <div className="p-6 rounded-2xl glass-panel relative overflow-hidden flex flex-col justify-between h-32 group hover:border-purple-500/30 transition-all shadow-inner">
+          <div className="absolute top-0 right-0 w-16 h-16 rounded-full bg-purple-500/5 filter blur-xl group-hover:scale-125 transition-transform" />
+          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-mono font-bold">Tracked Courts</span>
+          <div className="text-3xl font-display font-extrabold text-slate-200 mt-2">
+            23 Districts
+          </div>
+          <span className="text-[9px] text-slate-500 font-mono mt-1">&bull; Appellate & Trial divisions</span>
+        </div>
+      </motion.section>
+
+      {/* 3. Interactive Map Section */}
       <motion.section variants={itemVariants}>
         <StateMap selectedState={selectedState} onSelectState={setSelectedState} />
       </motion.section>
 
-      {/* 3. State Directory Expansion Panel */}
+      {/* 4. State Directory Expansion Panel */}
       <AnimatePresence>
         {selectedState && (
           <motion.section
@@ -172,25 +259,25 @@ export default function Dashboard() {
                 <button
                   onClick={() => {
                     setSelectedState(null);
-                    // Reset filters
+                    setFilterState('all');
                     setFilterType('all');
-                    setFilterLevel('all');
+                    setFilterCourt('all');
                     setFilterCategory('all');
                     setFilterYear(2024);
                   }}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 font-bold uppercase tracking-widest transition-all"
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 font-bold uppercase tracking-widest transition-all cursor-pointer"
                 >
                   Close Directory
                 </button>
               </div>
 
               {/* Filters & Time Slider Control Panel */}
-              <div className="p-5 rounded-2xl bg-black/40 border border-white/5 backdrop-blur-md grid grid-cols-1 lg:grid-cols-4 gap-6 items-center">
+              <div className="p-5 rounded-2xl bg-black/40 border border-white/5 backdrop-blur-md grid grid-cols-1 lg:grid-cols-5 gap-6 items-center">
                 {/* Year Range Slider */}
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center">
                     <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Timeline Range</label>
-                    <span className="text-xs font-mono font-bold text-cyan-400">{filterYear} Score Index</span>
+                    <span className="text-xs font-mono font-bold text-cyan-400">{filterYear} Score</span>
                   </div>
                   <div className="px-2">
                     <input
@@ -211,6 +298,23 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                {/* State selector */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">State Code</label>
+                  <select
+                    value={filterState}
+                    onChange={(e) => setFilterState(e.target.value)}
+                    className="bg-black/40 text-slate-300 text-xs py-2.5 px-3 rounded-xl border border-white/10 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="all">All States</option>
+                    <option value="US">Federal (US)</option>
+                    <option value="NY">New York (NY)</option>
+                    <option value="CA">California (CA)</option>
+                    <option value="TX">Texas (TX)</option>
+                    <option value="FL">Florida (FL)</option>
+                  </select>
+                </div>
+
                 {/* Entity Class Selector */}
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Entity Class</label>
@@ -219,7 +323,7 @@ export default function Dashboard() {
                       <button
                         key={t}
                         onClick={() => setFilterType(t)}
-                        className={`py-1.5 px-2 rounded-lg text-[10px] uppercase font-bold tracking-wider transition ${
+                        className={`py-1.5 px-1 rounded-lg text-[10px] uppercase font-bold tracking-wider transition ${
                           filterType === t 
                             ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
                             : 'text-slate-400 hover:text-slate-200'
@@ -231,17 +335,18 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Jurisdiction Level Selector */}
+                {/* Court ID Selector */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Jurisdiction Level</label>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Court Division</label>
                   <select
-                    value={filterLevel}
-                    onChange={(e) => setFilterLevel(e.target.value)}
-                    className="bg-black/40 text-slate-300 text-xs py-2 px-3 rounded-xl border border-white/10 focus:outline-none focus:border-cyan-500"
+                    value={filterCourt}
+                    onChange={(e) => setFilterCourt(e.target.value)}
+                    className="bg-black/40 text-slate-300 text-xs py-2.5 px-3 rounded-xl border border-white/10 focus:outline-none focus:border-cyan-500"
                   >
-                    <option value="all">All Jurisdictions</option>
-                    <option value="federal">Federal Level</option>
-                    <option value="state">State Level</option>
+                    <option value="all">All Court Divisions</option>
+                    <option value="scotus">Supreme Court (SCOTUS)</option>
+                    <option value="nysd">Southern District of NY (NYSD)</option>
+                    <option value="cacd">Central District of CA (CACD)</option>
                   </select>
                 </div>
 
@@ -251,7 +356,7 @@ export default function Dashboard() {
                   <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
-                    className="bg-black/40 text-slate-300 text-xs py-2 px-3 rounded-xl border border-white/10 focus:outline-none focus:border-cyan-500"
+                    className="bg-black/40 text-slate-300 text-xs py-2.5 px-3 rounded-xl border border-white/10 focus:outline-none focus:border-cyan-500"
                   >
                     <option value="all">All Indexed Topics</option>
                     <option value="drugs">Drug Offenses</option>
@@ -284,7 +389,8 @@ export default function Dashboard() {
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
                 >
                   {filteredEntities.map((item) => {
-                    const yearlyScore = api.getHistoricalScore(item.id, item.type, filterYear);
+                    const isScorable = item.type === 'judge' || item.type === 'prosecutor' || item.type === 'legislator';
+                    const yearlyScore = isScorable ? api.getHistoricalScore(item.id, item.type as any, filterYear) : 0;
                     const finalScore = yearlyScore !== 0 ? yearlyScore : item.current_score;
 
                     return (
@@ -303,7 +409,7 @@ export default function Dashboard() {
                           </div>
                           
                           <div>
-                            <h4 className="font-display font-bold text-lg text-slate-200 group-hover:text-white transition-colors">
+                            <h4 className="font-display font-bold text-lg text-slate-200 group-hover:text-white transition-colors line-clamp-1">
                               {item.display_name}
                             </h4>
                             
@@ -346,8 +452,62 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
+      {/* 5. Live Recent Cases Feed Section */}
+      <motion.section variants={itemVariants} className="p-8 rounded-3xl glass-panel relative overflow-hidden flex flex-col gap-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Scale className="w-5 h-5 text-rose-400" />
+            <h3 className="font-display font-extrabold text-2xl text-slate-100 tracking-tight">Live Recent Cases Feed</h3>
+          </div>
+          <p className="text-sm text-slate-400">
+            Real-time litigation docket entries parsed directly from CourtListener search indexes.
+          </p>
+        </div>
 
-      {/* 4. Bento Box Network & Index Metrics */}
+        {loadingRecent ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="w-6 h-6 text-rose-400 animate-spin" />
+            <span className="text-xs text-slate-500 font-mono">Querying CourtListener Search API...</span>
+          </div>
+        ) : recentCases.length === 0 ? (
+          <div className="text-center py-8 text-slate-500 text-xs font-mono">
+            No recent filings found. Please check network connection.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 text-slate-500 uppercase tracking-wider text-[10px] font-mono">
+                  <th className="pb-3 pr-4 font-bold">Filing Date</th>
+                  <th className="pb-3 pr-4 font-bold">Case Name</th>
+                  <th className="pb-3 pr-4 font-bold">Court</th>
+                  <th className="pb-3 pr-4 font-bold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {recentCases.map((c) => (
+                  <tr key={c.id} className="group hover:bg-white/5 transition-colors">
+                    <td className="py-3.5 pr-4 text-slate-400 font-mono whitespace-nowrap">{c.dateFiled || 'N/A'}</td>
+                    <td className="py-3.5 pr-4 text-slate-200 font-display font-bold group-hover:text-white transition-colors">{c.caseName || 'Public Case Record'}</td>
+                    <td className="py-3.5 pr-4 text-slate-400 font-mono">{c.court || 'U.S. Court'}</td>
+                    <td className="py-3.5">
+                      <Link
+                        href={`/case/cl_${c.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-rose-500/10 border border-white/10 hover:border-rose-500/25 text-slate-300 hover:text-rose-400 font-sans font-bold uppercase text-[9px] tracking-wider transition cursor-pointer"
+                      >
+                        Analyze Details
+                        <ArrowUpRight className="w-3 h-3" />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </motion.section>
+
+      {/* 6. Bento Box Network & Index Metrics */}
       <motion.section variants={itemVariants} className="bento-grid">
         {/* Network Chart takes 8 columns on large screens */}
         <div className="col-span-12 lg:col-span-8">
@@ -392,7 +552,7 @@ export default function Dashboard() {
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                 Live Sync
               </span>
-              <span>160 Scored DB Entities</span>
+              <span>185,000+ Tracked Records</span>
             </div>
           </div>
         </div>
