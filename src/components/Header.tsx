@@ -56,6 +56,12 @@ export default function Header() {
             >
               CourtListener
             </Link>
+            <Link
+              href="/audit"
+              className="text-[10px] sm:text-xs lg:text-sm font-bold text-slate-300 hover:text-cyan-400 uppercase tracking-widest transition-all duration-300 py-2 px-4 sm:px-5 rounded-xl bg-white/5 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/20 hover:shadow-[0_0_15px_rgba(0,240,255,0.1)] flex items-center justify-center"
+            >
+              Database Audit
+            </Link>
             <a
               href="/docs"
               target="_blank"
