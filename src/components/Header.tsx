@@ -9,7 +9,7 @@ export default function Header() {
   const [isBugModalOpen, setIsBugModalOpen] = useState(false);
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#040405]/80 backdrop-blur-xl shadow-lg transition-all duration-300">
+      <header className="relative z-50 w-full border-b border-white/5 bg-[#040405]/80 backdrop-blur-xl shadow-lg transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center gap-6">
           
           {/* Centered Brand Stack (Logo on top, Text below) */}
