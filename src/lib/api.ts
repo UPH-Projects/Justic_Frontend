@@ -330,19 +330,31 @@ export const api = {
       }
     }
 
-    // 2. Prosecutors → dynamically returned from query matching
+    // 2. Prosecutors → dynamically returned from query matching or state list
     if (!type || type === 'prosecutor') {
       const matchState = !state || state === 'NY' || state === 'CA' || state === 'TX' || state === 'FL';
-      if (q.trim().length >= 2 && matchState) {
-        const pId = queryLower.replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
-        const pName = q.replace(/\b\w/g, c => c.toUpperCase());
-        results.push({
-          id: pId,
-          type: 'prosecutor',
-          display_name: pName,
-          state: state || 'US',
-          current_score: parseFloat((Math.sin(pId.length) * 1.5).toFixed(2))
-        });
+      if (matchState) {
+        if (q.trim().length >= 2) {
+          const pId = queryLower.replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+          const pName = q.replace(/\b\w/g, c => c.toUpperCase());
+          results.push({
+            id: pId,
+            type: 'prosecutor',
+            display_name: pName,
+            state: state || 'US',
+            current_score: parseFloat((Math.sin(pId.length) * 1.5).toFixed(2))
+          });
+        } else if (state) {
+          const defaultPros: Record<string, SearchItem[]> = {
+            NY: [{ id: 'alvin_bragg', type: 'prosecutor', display_name: 'Alvin Bragg (Manhattan DA)', state: 'NY', current_score: 1.45 }],
+            CA: [{ id: 'george_gascon', type: 'prosecutor', display_name: 'George Gascón (Los Angeles DA)', state: 'CA', current_score: -1.25 }],
+            TX: [{ id: 'kim_ogg', type: 'prosecutor', display_name: 'Kim Ogg (Harris County DA)', state: 'TX', current_score: 0.85 }],
+            FL: [{ id: 'katherine_fernandez', type: 'prosecutor', display_name: 'Katherine Rundle (Miami-Dade DA)', state: 'FL', current_score: 0.40 }]
+          };
+          if (defaultPros[state]) {
+            results.push(...defaultPros[state]);
+          }
+        }
       }
     }
 
@@ -361,37 +373,66 @@ export const api = {
 
     // 4. Cases + Judges + Attorneys → CourtListener directly
     if (!type || type === 'judge' || type === 'case' || type === 'attorney') {
-      try {
-        const data = await courtlistenerSearch({ q: q || 'court', type: 'o' });
-        data.results?.slice(0, 12).forEach((res) => {
-          const cState = getCourtState(res.court || '');
-          const matchState = !state || cState === state;
-          if (!matchState) return;
+      if (!q && state) {
+        // Return default representative judges & attorneys instantly to populate state directories and map counts
+        const defaults: Record<string, SearchItem[]> = {
+          NY: [
+            { id: 'juan_merchan', type: 'judge', display_name: 'Hon. Juan Merchan', state: 'NY', current_score: 1.85 },
+            { id: 'jack_smith', type: 'attorney', display_name: 'Jack Smith', state: 'NY', current_score: 0.0 }
+          ],
+          CA: [
+            { id: 'lance_ito', type: 'judge', display_name: 'Hon. Lance Ito', state: 'CA', current_score: -0.40 },
+            { id: 'john_keker', type: 'attorney', display_name: 'John Keker', state: 'CA', current_score: 0.0 }
+          ],
+          TX: [
+            { id: 'janis_jack', type: 'judge', display_name: 'Hon. Janis Jack', state: 'TX', current_score: 0.90 },
+            { id: 'rusty_hardin', type: 'attorney', display_name: 'Rusty Hardin', state: 'TX', current_score: 0.0 }
+          ],
+          FL: [
+            { id: 'aileen_cannon', type: 'judge', display_name: 'Hon. Aileen Cannon', state: 'FL', current_score: 2.40 },
+            { id: 'todd_blanche', type: 'attorney', display_name: 'Todd Blanche', state: 'FL', current_score: 0.0 }
+          ],
+          US: [
+            { id: 'samuel_alito', type: 'judge', display_name: 'Hon. Samuel Alito', state: 'US', current_score: 1.15 },
+            { id: 'neal_katyal', type: 'attorney', display_name: 'Neal Katyal', state: 'US', current_score: 0.0 }
+          ]
+        };
+        if (defaults[state]) {
+          results.push(...defaults[state]);
+        }
+      } else {
+        try {
+          const data = await courtlistenerSearch({ q: q || 'court', type: 'o' });
+          data.results?.slice(0, 12).forEach((res) => {
+            const cState = getCourtState(res.court || '');
+            const matchState = !state || cState === state;
+            if (!matchState) return;
 
-          if (!type || type === 'case') {
-            results.push({
-              id: `case_${res.id || res.cluster_id}`,
-              type: 'case',
-              display_name: res.caseName || res.caseNameFull || 'Public Case Record',
-              state: cState,
-              current_score: 0.0,
-            });
-          }
-
-          if ((!type || type === 'judge') && res.author_str) {
-            const jId = res.author_str.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
-            if (!results.some(r => r.id === jId && r.type === 'judge')) {
+            if (!type || type === 'case') {
               results.push({
-                id: jId, type: 'judge',
-                display_name: `Hon. ${res.author_str}`,
+                id: `case_${res.id || res.cluster_id}`,
+                type: 'case',
+                display_name: res.caseName || res.caseNameFull || 'Public Case Record',
                 state: cState,
-                current_score: parseFloat((Math.random() * 2 - 1).toFixed(2)),
+                current_score: 0.0,
               });
             }
-          }
-        });
-      } catch (e) {
-        console.warn('[API] CourtListener search failed:', e);
+
+            if ((!type || type === 'judge') && res.author_str) {
+              const jId = res.author_str.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+              if (!results.some(r => r.id === jId && r.type === 'judge')) {
+                results.push({
+                  id: jId, type: 'judge',
+                  display_name: `Hon. ${res.author_str}`,
+                  state: cState,
+                  current_score: parseFloat((Math.random() * 2 - 1).toFixed(2)),
+                });
+              }
+            }
+          });
+        } catch (e) {
+          console.warn('[API] CourtListener search failed:', e);
+        }
       }
     }
 
