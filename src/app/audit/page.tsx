@@ -157,6 +157,52 @@ export default function AuditPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Source-by-Source Gap Matrix Table */}
+            <div className="border-t border-white/5 pt-6 mt-4">
+              <h4 className="font-display font-extrabold text-slate-200 text-sm mb-3">
+                Source-by-Source Ingestion Gap Matrix
+              </h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr className="border-b border-white/10 text-slate-400 font-mono text-[9px] uppercase tracking-wider">
+                      <th className="py-2">Data Source</th>
+                      <th className="py-2">Jurisdiction Level</th>
+                      <th className="py-2 text-right">Inferred Outcomes</th>
+                      <th className="py-2 text-right">Gaps & Ingestion Gaps</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-slate-300">
+                    <tr>
+                      <td className="py-2.5 font-bold text-slate-200">CourtListener API</td>
+                      <td className="py-2.5">Federal District, Appellate, Supreme & major State courts</td>
+                      <td className="py-2.5 text-right font-mono text-cyan-400">Verifiable Opinions</td>
+                      <td className="py-2.5 text-right text-slate-400 font-sans">Full dockets require heavy text parsing & local storage</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 font-bold text-slate-200">RECAP Archive</td>
+                      <td className="py-2.5">Federal Trial & Bankruptcy Court records</td>
+                      <td className="py-2.5 text-right font-mono text-indigo-400">Docket Attachments</td>
+                      <td className="py-2.5 text-right text-slate-400 font-sans">Counsel roles & motion success are unparsed in raw dockets</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 font-bold text-slate-200">GitHub Congress Registry</td>
+                      <td className="py-2.5">U.S. House & Senate federal representatives</td>
+                      <td className="py-2.5 text-right font-mono text-emerald-400">Roll Call Votes</td>
+                      <td className="py-2.5 text-right text-slate-400 font-sans">State legislatures & local municipal voting are missing</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 font-bold text-slate-200">County DA Transparencies</td>
+                      <td className="py-2.5">Local District Attorney Offices (NY, LA)</td>
+                      <td className="py-2.5 text-right font-mono text-purple-400">Aggregated Rates</td>
+                      <td className="py-2.5 text-right text-slate-400 font-sans">No public API exists; requires manual ingestion updates</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
 
           {/* Level 4 Intelligence Roadmap */}
